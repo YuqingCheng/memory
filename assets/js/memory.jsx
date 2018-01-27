@@ -29,6 +29,7 @@ class Memory extends React.Component {
       hide: hide,
       count: 0,
       last: null,
+      lock: false,
     };
 
     this.getTile = this.getTile.bind(this);
@@ -39,12 +40,16 @@ class Memory extends React.Component {
     const index = i*4+j;
     const isHidden = state.hide[index];
     const letter = state.letters[index];
+    const lock = state.lock;
 
-    const click = (() => {
+    let click = (() => {
       this.checkGuess(i, j);
     });
 
     if(isHidden) {
+      if(lock) {
+        click = null;
+      }
 
       return (<Button color="primary" onClick={click} />);
 
@@ -69,6 +74,7 @@ class Memory extends React.Component {
       this.setState({
         hide: hide,
         count: this.state.count+1,
+        lock: true,
       });
 
       if(letters[index] != letters[lastIndex]) {
@@ -78,11 +84,13 @@ class Memory extends React.Component {
           this.setState({
             hide: hide,
             last: null,
+            lock: false,
           });
         }, 1000);
       } else {
         this.setState({
           last: null,
+          lock: false,
         });
       }
     }else{
