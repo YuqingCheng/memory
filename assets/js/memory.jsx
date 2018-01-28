@@ -34,6 +34,7 @@ class Memory extends React.Component {
 
     this.getTile = this.getTile.bind(this);
     this.checkGuess = this.checkGuess.bind(this);
+    this.restart = this.restart.bind(this);
   }
 
   getTile(state, i, j) {
@@ -46,16 +47,23 @@ class Memory extends React.Component {
       this.checkGuess(i, j);
     });
 
+    const buttonStyle = {
+      width: 80,
+      height: 80,
+      padding: 5,
+      fontSize: 36,
+    };
+
     if(isHidden) {
       if(lock) {
         click = null;
       }
 
-      return (<Button color="primary" onClick={click} />);
+      return (<Button color="primary" onClick={click} style={buttonStyle}/>);
 
     } else {
 
-      return (<Button color="warning">{letter}</Button>);
+      return (<Button color="warning" style={buttonStyle}>{letter}</Button>);
 
     }
 
@@ -92,6 +100,14 @@ class Memory extends React.Component {
           last: null,
           lock: false,
         });
+        let end = true;
+        for(var k = 0; k < hide.length; k++) end = end && (!hide[k]);
+        if(end) {
+          const score = Math.max(0, 116-this.state.count);
+          setTimeout(() => {
+            alert("Your score: "+score+"\nPlease restart");
+          }, 600);
+        }
       }
     }else{
       hide[index] = false;
@@ -99,17 +115,49 @@ class Memory extends React.Component {
       this.setState({
         hide: hide,
         last: last,
+        count: this.state.count+1,
       });
     }
+  }
+
+  restart() {
+    const str = "AABBCCDDEEFFGGHH";
+    const letters = [];
+    const hide = [];
+
+    //shuffle the letters
+    var i, j, temp;
+    for(i = 0; i < str.length; i++) {
+      letters.push(str.charAt(i));
+      hide.push(true);
+      j = Math.floor((i+1)*Math.random());
+      temp = letters[j];
+      letters[j] = letters[i];
+      letters[i] = temp;
+    }
+
+    this.setState({ 
+      letters: letters,
+      hide: hide,
+      count: 0,
+      last: null,
+      lock: false,
+    });
   }
 
   render() {
     const rows = [];
     var i, j;
+    const tileStyle = {
+      border: 2,
+      padding: 0,
+      width: 90,
+      height: 90,
+    };
     for(i = 0; i < 4; i++) {
       const row = [];
       for(j = 0; j < 4; j++) {
-        row.push((<Col>{this.getTile(this.state, i, j)}</Col>));
+        row.push((<Col style={tileStyle}>{this.getTile(this.state, i, j)}</Col>));
       }
       rows.push((<Row>{row}</Row>));
     }
@@ -121,6 +169,11 @@ class Memory extends React.Component {
             <Container>
               {rows}
             </Container>
+          </Col>
+        </Row>
+        <Row>
+          <Col md="12">
+            <Button color="info" onClick={this.restart}>Restart</Button>
           </Col>
         </Row>
       </Container>
