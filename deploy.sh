@@ -11,12 +11,6 @@ if [ $PWD != $GIT_PATH ]; then
 	exit 1
 fi
 
-if [ $USER != "memory" ]; then
-	echo "Error: must run as user 'memory'"
-	echo "  Current user is $USER"
-	exit 2
-fi
-
 mix deps.get
 (cd assets && npm install)
 (cd assets && ./node_modules/brunch/bin/brunch b -p)
