@@ -172,7 +172,8 @@ class Memory extends React.Component {
           </Col>
         </Row>
         <Row>
-          <Col md="12">
+          <Col md="6">{"You have clicked "+this.state.count+" times. "}</Col>
+          <Col md="6">
             <Button color="info" onClick={this.restart}>Restart</Button>
           </Col>
         </Row>
