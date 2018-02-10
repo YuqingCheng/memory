@@ -2,162 +2,103 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import { Button, Container, Row, Col } from 'reactstrap';
 
-export default function run_memory(root) {
-  ReactDOM.render(<Memory />, root);
+export default function run_memory(root, channel) {
+  ReactDOM.render(<Memory channel={channel}/>, root);
 }
 
 class Memory extends React.Component {
   constructor(props) {
     super(props);
-    const str = "AABBCCDDEEFFGGHH";
-    const letters = [];
-    const hide = [];
-
-    //shuffle the letters
-    var i, j, temp;
-    for(i = 0; i < str.length; i++) {
-      letters.push(str.charAt(i));
-      hide.push(true);
-      j = Math.floor((i+1)*Math.random());
-      temp = letters[j];
-      letters[j] = letters[i];
-      letters[i] = temp;
-    }
-
-    this.state = { 
-      letters: letters,
-      hide: hide,
-      count: 0,
+    const channel = props.channel;
+    this.state = ({
+      letters: [],
+      hide: [],
+      count: -1,
       last: null,
       lock: false,
-    };
+    });
+    channel.join()
+		  .receive("ok", this.updateView.bind(this))
+		  .receive("error", resp => { console.log("Unable to join", resp); });
 
-    this.getTile = this.getTile.bind(this);
     this.checkGuess = this.checkGuess.bind(this);
     this.restart = this.restart.bind(this);
   }
 
-  getTile(state, i, j) {
-    const index = i*4+j;
-    const isHidden = state.hide[index];
-    const letter = state.letters[index];
-    const lock = state.lock;
-
-    let click = (() => {
-      this.checkGuess(i, j);
-    });
-
-    const buttonStyle = {
-      width: 80,
-      height: 80,
-      padding: 5,
-      fontSize: 36,
-    };
-
-    if(isHidden) {
-      if(lock) {
-        click = null;
+  updateView(res) {
+    console.log("update state", res);
+    const state = res.state;
+    if(state.last) {
+      this.setState({
+        letters: state.letters,
+        hide: state.hide,
+        count: state.count,
+        last: state.last,
+        lock: false,
+      });
+    }else{
+      this.setState({
+        count: state.count,
+      });
+     setTimeout(() => {
+      this.setState({
+        letters: state.letters,
+        hide: state.hide,
+        last: state.last,
+        lock: false,
+      });
+      if(res.state.score) {
+        alert("Your score: "+ res.state.score+ "\nPlease restart");
       }
 
-      return (<Button color="primary" onClick={click} style={buttonStyle}/>);
-
-    } else {
-
-      return (<Button color="warning" style={buttonStyle}>{letter}</Button>);
-
-    }
-
+      
+     }, 1000);
+    } 
   }
 
   checkGuess(i, j) {
-    const index = i*4+j;
-    let last = this.state.last;
-    const letters = this.state.letters;
-    const hide = this.state.hide;
-
-    if(last) {
-      const lastIndex = last[0]*4+last[1];
-      hide[index] = false;
-      hide[lastIndex] = false;
-      this.setState({
-        hide: hide,
-        count: this.state.count+1,
-        lock: true,
-      });
-
-      if(letters[index] != letters[lastIndex]) {
-        setTimeout(() => {
-          hide[lastIndex] = true;
-          hide[index] = true;
-          this.setState({
-            hide: hide,
-            last: null,
-            lock: false,
-          });
-        }, 1000);
-      } else {
+    if(!this.state.lock) {
+      const index = i*4+j;
+      const channel = this.props.channel;
+      const hide = this.state.hide;
+      hide[index] = false; 
+      if(this.state.last) {
         this.setState({
-          last: null,
-          lock: false,
+          lock: true,
+          hide: hide,
         });
-        let end = true;
-        for(var k = 0; k < hide.length; k++) end = end && (!hide[k]);
-        if(end) {
-          const score = Math.max(0, 116-this.state.count);
-          setTimeout(() => {
-            alert("Your score: "+score+"\nPlease restart");
-          }, 600);
-        }
+      }else{
+        this.setState({
+          hide: hide,
+        });
       }
-    }else{
-      hide[index] = false;
-      last = [i, j];
-      this.setState({
-        hide: hide,
-        last: last,
-        count: this.state.count+1,
-      });
+      channel.push("guess", {index: index})
+        .receive("ok", (res) => {this.updateView(res);});    
     }
   }
 
   restart() {
-    const str = "AABBCCDDEEFFGGHH";
-    const letters = [];
-    const hide = [];
-
-    //shuffle the letters
-    var i, j, temp;
-    for(i = 0; i < str.length; i++) {
-      letters.push(str.charAt(i));
-      hide.push(true);
-      j = Math.floor((i+1)*Math.random());
-      temp = letters[j];
-      letters[j] = letters[i];
-      letters[i] = temp;
-    }
-
-    this.setState({ 
-      letters: letters,
-      hide: hide,
-      count: 0,
-      last: null,
-      lock: false,
-    });
+    const channel = this.props.channel;
+    channel.push("restart", {})
+        .receive("ok", (res) => {this.updateView(res);});   
   }
 
   render() {
     const rows = [];
-    var i, j;
     const tileStyle = {
       border: 2,
       padding: 0,
       width: 90,
       height: 90,
     };
-    for(i = 0; i < 4; i++) {
+    for(var i = 0; i < 4; i++) {
       const row = [];
-      for(j = 0; j < 4; j++) {
-        row.push((<Col style={tileStyle}>{this.getTile(this.state, i, j)}</Col>));
+      for(var j = 0; j < 4; j++) {
+        row.push(
+          (<Col style={tileStyle}>
+            <Tile state={this.state} i={i} j={j} checkGuess={(i, j) => this.checkGuess(i, j)} lock={this.state.lock}/>
+          </Col>)
+        );
       }
       rows.push((<Row>{row}</Row>));
     }
@@ -179,5 +120,36 @@ class Memory extends React.Component {
         </Row>
       </Container>
     );
+  }
+}
+
+class Tile extends React.Component {
+
+  render() {
+    const i = this.props.i;
+    const j = this.props.j;
+    const state = this.props.state;
+
+    const index = i*4+j;
+    const isHidden = state.hide[index];
+    const letter = state.letters[index];
+    const lock = this.props.lock;
+
+    let click = (() => {
+      this.props.checkGuess(i, j);
+    });
+
+    const buttonStyle = {
+      width: 80,
+      height: 80,
+      padding: 5,
+      fontSize: 36,
+    };
+
+    if(isHidden) {
+      return (<Button color="primary" onClick={click} style={buttonStyle}/>);
+    } else {
+      return (<Button color="warning" style={buttonStyle}>{letter}</Button>);
+    }
   }
 }

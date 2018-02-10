@@ -8,13 +8,12 @@ defmodule MemoryWeb.GamesChannel do
       try do
         game = Agent.get(curr_name, &(&1))
         socket = assign(socket, "curr_name", curr_name)
-        {:ok, %{"join" => game}, socket}
+        {:ok, %{"state" => game}, socket}
       catch
         exit,_ -> 
-          Agent.start(fn -> new_game end, name: curr_name)
-          game = Agent.get(name, &(&1))
+          {_, game} = Agent.start(fn -> new_game end, name: curr_name)
           socket = assign(socket, "curr_name", curr_name)
-          {:ok, %{"join" => game}, socket}
+          {:ok, %{"state" => game}, socket}
       end
     else
       {:error, %{reason: "unauthorized"}}
@@ -22,11 +21,11 @@ defmodule MemoryWeb.GamesChannel do
   end
 
   def new_game do
-    %{:letters => new_letters, :hide => new_hide, :last => nil}
+    %{letters: new_letters, hide: new_hide, last: nil, count: 0, score: nil}
   end
 
   def new_letters do
-    Enum.shuffle ['A','A','B','B','C','C','D','D','E','E','F','F','G','G','H','H']
+    Enum.shuffle ["A","A","B","B","C","C","D","E","E","D","F","F","G","G","H","H"]
   end
 
   def new_hide do
@@ -35,12 +34,14 @@ defmodule MemoryWeb.GamesChannel do
     end
   end
 
-  def curr_state do
+  # encapsulate agent: get current state from agent
+  def curr_state(socket)do
     curr_name = socket.assigns["curr_name"]
     Agent.get(curr_name, &(&1))
   end
 
-  def update_state(state) do
+  # encapsulate agent: update current state in agent
+  def update_state(state, socket) do
     curr_name = socket.assigns["curr_name"]
     Agent.update(curr_name, fn last_state -> state end)
   end
@@ -53,35 +54,51 @@ defmodule MemoryWeb.GamesChannel do
     List.replace_at(list, index, true)
   end
 
-  # Channels can be used in a request/response fashion
-  # by sending replies to requests from the client
-  def handle_in("guess", %{"index" => i, "guess" => guess}, socket) do
-    state = curr_state
-    if state[:last] do
-      answer = Enum.at(state[:letters], i)
-      if answer == guess do
-        list = uncover(state[:hide], i)
-        %{state | :hide => list}
-      else
-        list = cover(state[:hide], state[:last])
-        %{state | :hide => list}
-      end
-      %{state | :last => nil}
+  def check_win(hide) do 
+    if Enum.empty?(hide) do
+      true
     else
-      list = uncover(state[:hide], i)
-      %{state | :hide => list}
-      %{state | :last => i}
+      [s | rest] = hide
+      if s do
+        false
+      else
+        true && check_win(rest)
+      end
     end
-    update_state(state)
-
-    {:reply, {:ok, curr_state}, socket}
   end
 
-  # It is also common to receive messages from the client and
-  # broadcast to everyone in the current topic (games:lobby).
+  # handle guess operation
+  def handle_in("guess", %{"index" => i}, socket) do
+    state = curr_state(socket)
+    state = %{state | :count => state.count+1}
+    if state[:last] do
+      guess = Enum.at(state[:letters], i)
+      answer = Enum.at(state[:letters], state[:last])
+      if answer == guess do
+        list = uncover(state[:hide], i)
+        state = %{state | :hide => list}
+      else
+        list = cover(state[:hide], state[:last])
+        state = %{state | :hide => list}
+      end
+      state = %{state | :last => nil}
+      if check_win(state[:hide]) do
+        state = %{state | :score => 116 - state[:count]}
+      end
+    else
+      list = uncover(state[:hide], i)
+      state = %{state | :hide => list}
+      state = %{state | :last => i}
+    end
+    _ = update_state(state, socket)
+
+    {:reply, {:ok, %{"state" => curr_state(socket)}}, socket}
+  end
+
+  # handle restart operation
   def handle_in("restart", payload, socket) do
-    update_state(new_game)
-    {:reply, {:ok, curr_state}, socket}
+    _ = update_state(new_game, socket)
+    {:reply, {:ok, %{"state" => curr_state(socket)}}, socket}
   end
 
   # Add authorization logic here as required.

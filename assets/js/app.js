@@ -29,9 +29,6 @@ function init() {
 	if(root) {
 		let channel = socket.channel("games:memory", {});
 		run_memory(root, channel);
-		channel.join()
-		  .receive("ok", resp => { console.log("Joined successfully", resp); })
-		  .receive("error", resp => { console.log("Unable to join", resp); });
 	}
 }
 
