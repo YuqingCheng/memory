@@ -24,23 +24,14 @@ import socket from "./socket.js"
 import run_memory from "./memory.jsx";
 //import run_demo from "./demo.jsx";
 
-
-function form_init() {
-	let channel = socket.channel("game:memory", {});
-	channel.join()
-	  .receive("ok", resp => { console.log("Joined successfully", resp); })
-	  .receive("error", resp => { console.log("Unable to join", resp); });
-
-	// TODO: push a initial state
-
-}
-
-
 function init() {
 	let root = document.getElementById('game');
-	if(root) run_memory(root);
-	if(document.getElementById('index-page')) {
-		form_init();
+	if(root) {
+		let channel = socket.channel("games:memory", {});
+		run_memory(root, channel);
+		channel.join()
+		  .receive("ok", resp => { console.log("Joined successfully", resp); })
+		  .receive("error", resp => { console.log("Unable to join", resp); });
 	}
 }
 
