@@ -22,13 +22,20 @@ import socket from "./socket.js"
 // import socket from "./socket"
 
 import run_memory from "./memory.jsx";
+import run_index from "./index.jsx";
 //import run_demo from "./demo.jsx";
 
 function init() {
 	let root = document.getElementById('game');
+	let index = document.getElementById('index');
 	if(root) {
-		let channel = socket.channel("games:memory", {});
+		let channel = socket.channel("games:"+window.gameName, {});
 		run_memory(root, channel);
+	}
+	if(index) {
+		run_index(index);
+
+
 	}
 }
 

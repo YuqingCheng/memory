@@ -46,6 +46,11 @@ defmodule MemoryWeb.GamesChannel do
     Agent.update(curr_name, fn last_state -> state end)
   end
 
+  def delete_state(socket) do
+    curr_name = socket.assigns["curr_name"]
+    Agent.stop(curr_name, :normal, :infinity)
+  end
+
   def uncover(list, index) do
     List.replace_at(list, index, false)
   end
@@ -97,8 +102,8 @@ defmodule MemoryWeb.GamesChannel do
 
   # handle restart operation
   def handle_in("restart", payload, socket) do
-    _ = update_state(new_game, socket)
-    {:reply, {:ok, %{"state" => curr_state(socket)}}, socket}
+    _ = delete_state(socket)
+    {:reply, {:ok, %{}}, socket}
   end
 
   # Add authorization logic here as required.

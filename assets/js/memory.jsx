@@ -80,7 +80,8 @@ class Memory extends React.Component {
   restart() {
     const channel = this.props.channel;
     channel.push("restart", {})
-        .receive("ok", (res) => {this.updateView(res);});   
+        .receive("ok", (res) => {});
+    window.location = '/';   
   }
 
   render() {

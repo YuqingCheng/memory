@@ -5,6 +5,6 @@ defmodule MemoryWeb.PageController do
     render conn, "index.html"
   end
   def game(conn, params) do
-    render conn, "index.html", game: params["game"]
+    render conn, "game.html", game: params["game"]
   end
 end
