@@ -50,8 +50,6 @@ class Memory extends React.Component {
       if(res.state.score) {
         alert("Your score: "+ res.state.score+ "\nPlease restart");
       }
-
-      
      }, 1000);
     } 
   }
@@ -125,12 +123,10 @@ class Memory extends React.Component {
 }
 
 class Tile extends React.Component {
-
   render() {
     const i = this.props.i;
     const j = this.props.j;
     const state = this.props.state;
-
     const index = i*4+j;
     const isHidden = state.hide[index];
     const letter = state.letters[index];

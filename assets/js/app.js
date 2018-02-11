@@ -34,8 +34,6 @@ function init() {
 	}
 	if(index) {
 		run_index(index);
-
-
 	}
 }
 
